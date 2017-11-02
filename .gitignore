@@ -1,0 +1,6 @@
+*.json
+node_modules/
+.idea/
+public/
+src/**/*.js
+src/app/service/WebhookService.js
