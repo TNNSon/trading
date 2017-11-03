@@ -26,7 +26,7 @@ export class CoinController implements ICoinController {
                     }
                 })
         });
-        // return this.coinService.checkCoin("BTC-CRB");
+        // return this.coinService.test();
         // return this.coinService.testGetMin("BTC-NXC");
     }
 

@@ -70,6 +70,14 @@ export class CoinService {
 
     }
 
+    test() {
+        return this.coinRepository.find({name: "BTC-XVC"})
+            .then((rs) => {
+                let a = this.processPrice(rs.dataBuy, rs.price, rs.historyBuy)
+                console.log(a);
+            })
+    }
+
     aggregateCoin(coin) {
         return Q.all([this.getData(coin, this.Five_Min), this.getHistory(coin), this.getPrice(coin)])
             .spread((rsT, history, ticker: any) => {
@@ -99,7 +107,7 @@ export class CoinService {
                         return this.sumRepository.find({name: name})
                             .then((sum) => {
                                 let promise = [];
-                                console.log("sell ", coin);
+                                console.log("sell " + name + "  "  +  priceBuy.Bid );
                                 if (!sum || !sum.value || sum.value === 0) {
                                     promise.push(this.sumRepository.create(
                                         {
@@ -174,12 +182,14 @@ export class CoinService {
         return false;
     }
 
-    updateHighPrice(data: Array<IChart>) {
+    updateHighPrice(data: Array<IChart>, returnIndexMin: number = 0) {
         let indexMax = 0,
             max: any = data[0],
             indexMin = 0,
             min: any = data[0],
             length = data.length;
+        min["index"] = indexMin;
+
         for (let i = 0; i < length; i++) {
             if (max.H < data[i].H) {
                 max = data[i];
@@ -191,10 +201,12 @@ export class CoinService {
                 indexMin = i;
             }
         }
+        returnIndexMin += indexMin;
+        min["index"] = returnIndexMin;
 
         if (new Date(min.T).getTime() > new Date(max.T).getTime()) {
             if (max.H / min.L * 100 - 100 > 7 && indexMin !== 0) {
-                return this.updateHighPrice(_.slice(data, indexMin));
+                return this.updateHighPrice(_.slice(data, indexMin), returnIndexMin);
             } else {
                 return min;
             }
@@ -202,44 +214,106 @@ export class CoinService {
             if (indexMax == data.length || indexMax == 0) {
                 return min;
             } else {
-                return this.updateHighPrice(_.slice(data, indexMax));
+                return this.updateHighPrice(_.slice(data, indexMax), returnIndexMin);
             }
         }
     }
 
     processPrice(data: Array<IChart>, priceBuy: number, historyData: Array<IHistoryBuySell>) {
-        let max = 0, min = 0, sumSell = 0, sumBuy = 0;
-        let abs = _.meanBy(this.dva(data), "V");
+
+        data = _.sortBy(data, "T")
+        if (_.isObject(data[data.length - 1].H)) {
+            data = _.slice(data, 0, data.length - 1)
+        }
+        let max = 0, min = historyData.length > 0 ? historyData[0].Price : 0, sumSell = 0, sumBuy = 0;
+        let abs = _.meanBy(this.dva(_.cloneDeep(data)), "V");
         let sum = 0, time;
+
+        let lastChart;
+
         if (historyData.length === 0) {
             sum = data[data.length - 1].V;
+            lastChart = data[data.length - 1];
         } else {
-            historyData.forEach((h) => {
-                sum += h.Quantity;
-                if (max < h.Price) {
-                    max = h.Price;
-                }
 
-                if (min > h.Price) {
-                    min = h.Price;
-                }
+            time = ((new Date(historyData[0].TimeStamp).getTime() - new Date(data[data.length - 1].T).getTime()) / 1000) / 60;
 
-                if (h.OrderType === "SELL") {
-                    sumSell += h.Quantity;
-                } else {
-                    sumBuy += h.Quantity;
-                }
-            })
-            time = _.round((new Date(historyData[0].TimeStamp).getTime() - new Date(historyData[historyData.length - 1].TimeStamp).getTime()) / 1000);
+            if (time <= 5) {
+                historyData.forEach((h) => {
+                    sum += h.Quantity;
+                    if (max < h.Price) {
+                        max = h.Price;
+                    }
 
-            if (time < 5) {
+                    if (min > h.Price) {
+                        min = h.Price;
+                    }
+
+                    if (h.OrderType === "SELL") {
+                        sumSell += h.Quantity;
+                    } else {
+                        sumBuy += h.Quantity;
+                    }
+                });
                 sum = sum / time * 5
             }
+            else {
+                let temp: any = {V: 0, H: 0, L: historyData.length > 0 ? historyData[0].Price : 0};
+                let temp2: any = {V: 0, H: 0, L: historyData.length > 0 ? historyData[0].Price : 0};
+                let max = 0, min = historyData.length > 0 ? historyData[0].Price : 0, sumSell = 0, sumBuy = 0;
+                let sum = 0;
+                historyData.forEach((h) => {
+                    if (new Date(h.TimeStamp).getTime() < new Date(data[data.length - 1].T).getTime() + 300000) {
+                        temp.V += h.Quantity;
+                        if (temp.H < h.Price) {
+                            temp.H = h.Price;
+                        }
 
+                        if (temp.L > h.Price) {
+                            temp.L = h.Price;
+                        }
+                    } else if (new Date(h.TimeStamp).getTime() < new Date(data[data.length - 1].T).getTime() + 300000) {
+                        temp2.V += h.Quantity;
+                        if (temp2.H < h.Price) {
+                            temp2.H = h.Price;
+                        }
+
+                        if (temp2.L > h.Price) {
+                            temp2.L = h.Price;
+                        }
+                    } else {
+                        sum += h.Quantity;
+                        if (max < h.Price) {
+                            max = h.Price;
+                        }
+
+                        if (min > h.Price) {
+                            min = h.Price;
+                        }
+
+                        if (h.OrderType === "SELL") {
+                            sumSell += h.Quantity;
+                        } else {
+                            sumBuy += h.Quantity;
+                        }
+                    }
+
+                })
+                data.push(temp)
+                if (time > 10) {
+                    data.push(temp2)
+                }
+                sum = sum / (time % 5) * 5
+            }
+            lastChart = data[data.length - 1];
             data.push({L: min, H: max, T: historyData[0].TimeStamp, V: sum, O: null, C: null, BV: null})
         }
 
         let minPrice = this.updateHighPrice(data);
+        // bo qua truong hop dang ngay day'
+        if (minPrice["index"] === data.length - 1 || max < ((lastChart.L + lastChart.O + lastChart.H + lastChart.C) / 4)) {
+            return false;
+        }
         if (priceBuy / minPrice.L * 100 - 100 > 3 && priceBuy / minPrice.L * 100 - 100 < 3.5 && sum > abs * 1.75 && this.checkSideway(data)) {
             return true;
         } else if (priceBuy / minPrice.L * 100 - 100 > 2.5 && priceBuy / minPrice.L * 100 - 100 < 3.5 && sum > abs * 5 && this.checkSideway(data)) {
@@ -281,17 +355,17 @@ export class CoinService {
         var data2 = data.slice(low, high);
         var sum = 0;     // stores sum of elements
         var sumsq = 0; // stores sum of squares
-        for (var i = 0; i < data.length; ++i) {
-            sum += data[i].V;
-            sumsq += data[i].V * data[i].V;
+        for (var i = 0; i < data2.length; ++i) {
+            sum += data2[i].V;
+            sumsq += data2[i].V * data2[i].V;
         }
         var mean = sum / l;
         var varience = sumsq / l - mean * mean;
         var sd = Math.sqrt(varience);
         var data3 = new Array(); // uses for data which is 3 standard deviations from the mean
-        for (var i = 0; i < data.length; ++i) {
-            if (data[i].V > mean - 3 * sd && data[i].V < mean + 3 * sd)
-                data3.push(data[i]);
+        for (var i = 0; i < data2.length; ++i) {
+            if (data2[i].V > mean - 3 * sd && data2[i].V < mean + 3 * sd)
+                data3.push(data2[i]);
         }
         return data3;
     }
