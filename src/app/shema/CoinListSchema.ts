@@ -4,11 +4,8 @@ class CoinListSchema {
     static get schema() {
         let schema = new mongoose.Schema({
             MarketName: String,
-            IsActive: Boolean,
-            MarketCurrency: String,
-            BaseCurrency: String,
-            MarketCurrencyLong: String,
-            BaseCurrencyLong: String,
+            BaseVolume: Number,
+            High: Number
         });
 
         return schema;

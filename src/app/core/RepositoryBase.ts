@@ -13,7 +13,7 @@ class RepositoryBase<T> implements IRepositoryBase {
     }
 
     public retrieve(filter: any): any {
-        return this._model.find(filter);
+        return this._model.aggregate(filter);
     }
 
     public create(item: any): any {
@@ -33,7 +33,7 @@ class RepositoryBase<T> implements IRepositoryBase {
 
     public find(conds: any): any {
         return Q(this._model.findOne(conds).lean().exec((err, rs) => {
-                return rs;
+            return rs;
         }))
     }
 
@@ -42,7 +42,29 @@ class RepositoryBase<T> implements IRepositoryBase {
     }
 
     public findOneAndUpdate(conds: any, update: any): any {
-        return this._model.findOneAndUpdate(conds, update,{upsert: true});
+        return this._model.findOneAndUpdate(conds, update, {upsert: true});
+    }
+
+    public drop(): any {
+        return this._model.remove({});
+    }
+
+
+    public push(id: string, data, time): any {
+        return this._model.update(
+            {_id: id.toString()},
+            {
+                $push: {Result: data}
+            }).then(rs => {
+            return this._model.update(
+                {_id: id.toString()},
+                {
+                    $pull: {Result: {T: time}}
+                })
+        }, err => {
+            console.log("cant update new data " + id, err);
+        });
+
     }
 
     public toObjectId(_id: string): mongoose.Types.ObjectId {

@@ -18,9 +18,13 @@ class CoinSchema {
             per: Number,
             abs: Number,
             dataBuy: Array,
+            dataBuyNearest: Array,
             historyBuy: Array,
             dataSell: Array,
+            dataSellNearest: Array,
             historySell: Array,
+            hasSell: Boolean,
+            hasBuy: Boolean,
         });
 
         return schema;
