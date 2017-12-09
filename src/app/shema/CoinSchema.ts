@@ -16,16 +16,14 @@ class CoinSchema {
             timestamp: String,
             timestampSell: String,
             per: Number,
-            abs: Number,
             dataBuy: Array,
-            dataBuyNearest: Array,
             historyBuy: Array,
             dataSell: Array,
-            dataSellNearest: Array,
             historySell: Array,
             hasSell: Boolean,
             hasBuy: Boolean,
-        });
+            lastTimeBuy: String,
+        }, { versionKey: false });
 
         return schema;
     }

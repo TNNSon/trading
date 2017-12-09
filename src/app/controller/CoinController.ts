@@ -20,29 +20,39 @@ export class CoinController implements ICoinController {
         //     .then(() => {
         //         this.coinService.prepareData()
         //             .then(() => {
-        //                 schedule.scheduleJob("* * * * *", () => {
-        //                     return this.lockRepository.find({lock: false})
-        //                         .then((rs) => {
-        //                             this.lockRepository.update({lock: false},{lock: true});
-        //                             if (rs) {
-        //                                 return this.coinService.loop()
-                                            // .then((rs) => {
-                                            //     return this.lockRepository.update({lock: true},{lock: false});
-                                            // },(err) => {
-                                            //     console.log("error",err);
-                                            //     return true;
-                                            // });
-                                    // }
-                                // })
-                        // });
-                    // });
-            // })
+        //                 return this.loopFuntion()
+        //             });
+        //     })
 
         // return this.coinService.prepareData();
-        // return this.testService.testBuy("5a0337b70b4a742ef4532b15");
+        // return this.testService.testLoop();
+        return this.testService.testBuy("5a2979aff0bd0009b87c7972");
+        // 5a146f4ec11732316c738756
+        //5a1470f5c11732316c739461
+        // return this.testService.testSell("5a15e525a52c8b29fc3bd12e");
         // return this.coinService.testSideWay("BTC-MEME");
-        return this.testService.testLoop();
+        // return this.testService.runEach();
+        // return this.testService.testCoin();
         // return this.coinService.testGetMin("BTC-NXC");
+    }
+
+    loopFuntion(){
+        return this.lockRepository.find({lock: false})
+            .then((rs) => {
+                this.lockRepository.update({lock: false},{lock: true});
+                if (rs) {
+                    return this.coinService.loop()
+                        .then((rs) => {
+                            return this.lockRepository.update({lock: true},{lock: false})
+                                .then(() => {
+                                return this.loopFuntion()
+                                });
+                        },(err) => {
+                            console.log("error",err);
+                            return true;
+                        });
+                }
+            })
     }
 
     updateCoin() {

@@ -11,6 +11,7 @@ import LockRepository = require("../../repository/LockRepository");
 import CoinListRepository = require("../../repository/CoinListRepository");
 import {TestService} from "../../service/coin/TestService";
 import OrderHistoryRepository = require("../../repository/OrderHistoryRepository");
+import HistoryRepository = require("../../repository/HistoryRepository");
 
 class IocConfig {
     static init(): Container {
@@ -22,6 +23,7 @@ class IocConfig {
         kernel.bind<LockRepository>("LockRepository").to(LockRepository);
         kernel.bind<CoinListRepository>("CoinListRepository").to(CoinListRepository);
         kernel.bind<OrderHistoryRepository>("OrderHistoryRepository").to(OrderHistoryRepository);
+        kernel.bind<HistoryRepository>("HistoryRepository").to(HistoryRepository);
 
         kernel.bind<CoinService>("CoinService").to(CoinService);
         kernel.bind<TestService>("TestService").to(TestService);
